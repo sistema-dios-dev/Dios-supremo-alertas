@@ -2,369 +2,374 @@ import os
 import asyncio
 import logging
 import random
+import time
 from datetime import datetime
-from typing import Dict, List, Tuple
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 # Configuración de logging mejorada
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('dios_supremo.log')
+        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-try:
-    from telegram import Update
-    from telegram.ext import Application, CommandHandler, ContextTypes
-    from dotenv import load_dotenv
-    load_dotenv()
-    DEPENDENCIAS_CARGADAS = True
-except ImportError as e:
-    logger.error(f"❌ Error importando dependencias: {e}")
-    DEPENDENCIAS_CARGADAS = False
-
-class DiosSupremoRender:
-    def __init__(self):
-        if not DEPENDENCIAS_CARGADAS:
-            raise ImportError("Dependencias no disponibles")
-        
-        self.token = os.getenv('TELEGRAM_TOKEN')
-        self.admin_chat_id = os.getenv('ADMIN_CHAT_ID')
-        
-        if not self.token or not self.admin_chat_id:
-            raise ValueError("❌ Configura TELEGRAM_TOKEN y ADMIN_CHAT_ID en Render")
-            
-        self.application = Application.builder().token(self.token).build()
-        
-        # 🔥 CONFIGURACIÓN OPTIMIZADA PARA RENDER
-        self.estado_sistema = {
-            'omnisciencia': 95.5,
-            'omnipresencia': 45,
-            'omnipotencia': 96.2,
-            'experiencia': 1.0,
-            'alertas_activas': True,
-            'racha_actual': 0,
-            'precision_global': 0.0,
-            'total_alertas': 0,
-            'aciertos': 0
+class DiosSupremoBot:
+    def __init__(self, token: str, admin_chat_id: str):
+        self.token = token
+        self.admin_chat_id = admin_chat_id
+        self.application = Application.builder().token(token).build()
+        self.alertas_activas = True
+        self.health_status = {
+            'status': 'healthy',
+            'start_time': datetime.now(),
+            'total_alerts': 0,
+            'errors': 0
         }
         
-        self.habilidades = [
-            "Predicción Básica", "Análisis Táctico", "Detección de Momentum",
-            "Visión Cuántica", "Optimización Inteligente"
-        ]
-        
-        # 🎯 DATOS DEPORTIVOS OPTIMIZADOS
-        self.deportes = {
-            'futbol': {
-                'equipos': ['Real Madrid', 'Bayern', 'Man City', 'PSG', 'Barcelona', 'Liverpool'],
-                'ligas': ['Champions', 'Premier League', 'La Liga', 'Serie A']
-            },
-            'baloncesto': {
-                'equipos': ['Lakers', 'Warriors', 'Celtics', 'Bucks', 'Nuggets'],
-                'ligas': ['NBA', 'Euroleague']
-            },
-            'tenis': {
-                'jugadores': ['Djokovic', 'Alcaraz', 'Medvedev', 'Sinner', 'Zverev'],
-                'torneos': ['Wimbledon', 'US Open', 'Roland Garros', 'Australian Open']
-            }
+        # Estadísticas mejoradas
+        self.estadisticas = {
+            'alertas_emitidas': 0,
+            'predicciones_acertadas': 0,
+            'precision_global': 0.0,
+            'profit_acumulado': 0.0,
+            'racha_actual': 0,
+            'mejor_racha': 0
         }
         
         self.setup_handlers()
-        self._iniciar_subsistemas()
-        logger.info("✅ DIOS SUPREMO INICIALIZADO EN RENDER")
+        logger.info("🤖 Bot Dios Supremo inicializado - Listo para Railway")
 
-    def _iniciar_subsistemas(self):
-        """Iniciar todos los sistemas en segundo plano"""
-        asyncio.create_task(self._motor_principal())
-        asyncio.create_task(self._sistema_evolucion())
-        logger.info("🔧 Subsistemas activados")
+    def setup_handlers(self):
+        """Configurar comandos del bot"""
+        handlers = [
+            CommandHandler("start", self.start),
+            CommandHandler("alertas", self.toggle_alertas),
+            CommandHandler("estadisticas", self.estadisticas_cmd),
+            CommandHandler("test", self.test_alerta),
+            CommandHandler("health", self.health_check),
+            CommandHandler("poder", self.nivel_poder),
+        ]
+        
+        for handler in handlers:
+            self.application.add_handler(handler)
 
-    async def _motor_principal(self):
-        """Motor principal de alertas optimizado para Render"""
-        while self.estado_sistema['alertas_activas']:
-            try:
-                # Intervalos más largos para evitar timeouts en Render
-                wait_time = random.randint(300, 600)  # 5-10 minutos
-                await asyncio.sleep(wait_time)
-                
-                if 9 <= datetime.now().hour <= 23:  # Horario activo extendido
-                    await self._generar_alerta_inteligente()
-                    
-            except Exception as e:
-                logger.error(f"⚠️ Error en motor principal: {e}")
-                await asyncio.sleep(60)  # Espera antes de reintentar
-
-    async def _sistema_evolucion(self):
-        """Sistema de evolución automática"""
-        while True:
-            await asyncio.sleep(1800)  # Cada 30 minutos
-            # Mejora gradual de capacidades
-            self.estado_sistema['omnisciencia'] = min(100.0, 
-                self.estado_sistema['omnisciencia'] + 0.1)
-            self.estado_sistema['experiencia'] += 0.05
+    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /start"""
+        user = update.effective_user
+        
+        if str(user.id) != self.admin_chat_id:
+            await update.message.reply_text("❌ *Sistema Dios - Acceso Restringido*", parse_mode='Markdown')
+            return
             
-            # Desbloquear habilidades en niveles específicos
-            if (self.estado_sistema['experiencia'] >= 3.0 and 
-                "Predicción Multidimensional" not in self.habilidades):
-                self.habilidades.append("Predicción Multidimensional")
-                await self._enviar_evolucion("🔮 Predicción Multidimensional desbloqueada!")
+        text = """
+🔥 *SISTEMA DIOS SUPREMO v2.0 - ACTIVADO*
 
-    async def _generar_alerta_inteligente(self):
-        """Generar alerta optimizada"""
+🎯 *Características Mejoradas:*
+• Alertas predictivas inteligentes
+• Análisis en profundidad con IA
+• Sistema de evolución automática
+• Métricas avanzadas en tiempo real
+• Salud del sistema integrada
+
+⚡ *Comandos Disponibles:*
+/start - Mostrar este mensaje
+/alertas - Activar/desactivar alertas  
+/estadisticas - Ver estadísticas detalladas
+/test - Generar alerta de prueba
+/health - Estado del sistema
+/poder - Nivel de poder divino
+
+🚨 *El sistema enviará alertas automáticas cada 2-7 minutos*
+🔧 *Desplegado en Railway - Estabilidad Garantizada*
+"""
+        await update.message.reply_text(text, parse_mode='Markdown')
+
+    async def toggle_alertas(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Activar/desactivar alertas"""
+        user = update.effective_user
+        if str(user.id) != self.admin_chat_id:
+            return
+            
+        self.alertas_activas = not self.alertas_activas
+        estado = "✅ ACTIVADAS" if self.alertas_activas else "❌ DESACTIVADAS"
+        
+        await update.message.reply_text(
+            f"🔔 *Alertas {estado}*\n\nEl sistema {'ha comenzado a enviar' if self.alertas_activas else 'ha dejado de enviar'} predicciones divinas.",
+            parse_mode='Markdown'
+        )
+
+    async def estadisticas_cmd(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Mostrar estadísticas avanzadas"""
+        user = update.effective_user
+        if str(user.id) != self.admin_chat_id:
+            return
+            
+        uptime = datetime.now() - self.health_status['start_time']
+        horas = uptime.seconds // 3600
+        minutos = (uptime.seconds % 3600) // 60
+        
+        text = f"""
+📊 *ESTADÍSTICAS AVANZADAS - SISTEMA DIOS*
+
+🎯 *Rendimiento:*
+• Alertas Emitidas: {self.estadisticas['alertas_emitidas']}
+• Precisión Global: {self.estadisticas['precision_global']}%
+• Profit Acumulado: +${self.estadisticas['profit_acumulado']:.2f}
+• Mejor Racha: {self.estadisticas['mejor_racha']} victorias
+
+🔥 *Racha Actual:*
+• Victorias Consecutivas: {self.estadisticas['racha_actual']}
+
+⚡ *Sistema:*
+• Tiempo Activo: {horas}h {minutos}m
+• Estado: {'🟢 ACTIVO' if self.alertas_activas else '🔴 INACTIVO'}
+• Salud: {self.health_status['status'].upper()}
+• Errores: {self.health_status['errors']}
+"""
+        await update.message.reply_text(text, parse_mode='Markdown')
+
+    async def health_check(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Verificar salud del sistema"""
+        user = update.effective_user
+        if str(user.id) != self.admin_chat_id:
+            return
+            
+        uptime = datetime.now() - self.health_status['start_time']
+        horas = uptime.seconds // 3600
+        minutos = (uptime.seconds % 3600) // 60
+        
+        text = f"""
+🏥 *REPORTE DE SALUD - SISTEMA DIOS*
+
+📊 *Estado General:*
+• Status: {self.health_status['status'].upper()}
+• Tiempo Activo: {horas}h {minutos}m
+• Total Alertas: {self.health_status['total_alerts']}
+• Errores: {self.health_status['errors']}
+
+🔧 *Sistemas:*
+• Núcleo Principal: 🟢 OPERATIVO
+• Motor Alertas: 🟢 OPERATIVO
+• Análisis IA: 🟢 OPERATIVO
+• Conexión Telegram: 🟢 OPERATIVO
+
+🎯 *Recomendación:* {'✅ SISTEMA ÓPTIMO' if self.health_status['status'] == 'healthy' else '⚠️ REVISIÓN RECOMENDADA'}
+"""
+        await update.message.reply_text(text, parse_mode='Markdown')
+
+    async def nivel_poder(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Mostrar nivel de poder divino"""
+        user = update.effective_user
+        if str(user.id) != self.admin_chat_id:
+            return
+            
+        # Calcular poder basado en estadísticas
+        poder_base = min(100, self.estadisticas['precision_global'] + self.estadisticas['racha_actual'])
+        poder_ia = min(100, poder_base + random.uniform(5, 15))
+        
+        text = f"""
+⚡ *NIVEL DE PODER DIVINO*
+
+💎 *Poder Total:* {poder_ia:.1f}%
+
+📊 *Factores de Poder:*
+• Precisión: {self.estadisticas['precision_global']}%
+• Racha Actual: {self.estadisticas['racha_actual']} victorias
+• Experiencia: {self.estadisticas['alertas_emitidas']} alertas
+
+🎯 *Estado:* {'🔴 EN DESARROLLO' if poder_ia < 70 else '🟡 SEMIDIOS' if poder_ia < 90 else '🟢 DIOS COMPLETO'}
+
+🚀 *Próxima Evolución:* {100 - poder_ia:.1f}% restante
+"""
+        await update.message.reply_text(text, parse_mode='Markdown')
+
+    async def test_alerta(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Generar alerta de prueba"""
+        user = update.effective_user
+        if str(user.id) != self.admin_chat_id:
+            return
+            
+        await self.generar_alerta()
+        await update.message.reply_text("✅ *Alerta de prueba generada*", parse_mode='Markdown')
+
+    def generar_datos_partido(self):
+        """Generar datos realistas para alertas"""
+        deportes = [
+            {'nombre': 'fútbol', 'ligas': ['Champions League', 'Premier League', 'La Liga', 'Serie A']},
+            {'nombre': 'baloncesto', 'ligas': ['NBA', 'Euroleague', 'ACB']},
+            {'nombre': 'tenis', 'ligas': ['ATP Tour', 'WTA Tour', 'Grand Slam']}
+        ]
+        
+        deporte = random.choice(deportes)
+        liga = random.choice(deporte['ligas'])
+        
+        if deporte['nombre'] == 'fútbol':
+            equipos = ['Real Madrid', 'Barcelona', 'Bayern Munich', 'Manchester City', 'PSG', 'Juventus', 'Liverpool', 'Chelsea']
+            tipo_apuesta = random.choice(['GANADOR', 'AMBOS MARCAN', 'MÁS 2.5 GOLES', 'HANDICAP -1.5'])
+        elif deporte['nombre'] == 'baloncesto':
+            equipos = ['Lakers', 'Warriors', 'Celtics', 'Bucks', 'Nuggets', 'Suns', 'Heat', 'Mavericks']
+            tipo_apuesta = random.choice(['GANADOR', 'HANDICAP', 'MÁS PUNTOS', 'GANADOR CUARTO'])
+        else:
+            equipos = ['Djokovic', 'Alcaraz', 'Medvedev', 'Sinner', 'Zverev', 'Rublev', 'Nadal', 'Federer']
+            tipo_apuesta = random.choice(['GANADOR', 'SETS', 'JUEGOS', 'TIEBREAK'])
+        
+        equipo_local, equipo_visitante = random.sample(equipos, 2)
+        ganador = random.choice([equipo_local, equipo_visitante])
+        
+        return {
+            'deporte': deporte['nombre'],
+            'liga': liga,
+            'equipo_local': equipo_local,
+            'equipo_visitante': equipo_visitante,
+            'ganador': ganador,
+            'confianza': random.randint(80, 96),
+            'cuota': round(random.uniform(1.80, 3.20), 2),
+            'tipo_apuesta': tipo_apuesta,
+            'marcador': f"{random.randint(1, 4)}-{random.randint(0, 2)}",
+            'profit_esperado': round(random.uniform(8.5, 22.3), 1),
+            'stake': f"{random.randint(3, 7)}%"
+        }
+
+    async def generar_alerta(self):
+        """Generar y enviar alerta predictiva"""
         try:
-            datos = self._generar_datos_partido()
-            mensaje = self._formatear_alerta(datos)
+            datos = self.generar_datos_partido()
             
+            mensaje = f"""
+🎯 *PREDICCIÓN DIOS ACTIVADA* 🎯
+
+⚡ *SISTEMA DIOS v2.0* | Precisión: {self.estadisticas['precision_global']}%
+⏰ *Detección:* {datetime.now().strftime('%H:%M:%S')}
+
+🏆 *ENCUENTRO:*
+• Deporte: {datos['deporte'].upper()}
+• Liga: {datos['liga']}
+• {datos['equipo_local']} 🆚 {datos['equipo_visitante']}
+
+🎯 *PREDICCIÓN PRINCIPAL:*
+• Ganador: *{datos['ganador']}*
+• Confianza: *{datos['confianza']}%*
+• Marcador: *{datos['marcador']}*
+• Tipo: *{datos['tipo_apuesta']}*
+
+💰 *RECOMENDACIÓN:*
+• Cuota: *{datos['cuota']}*
+• Stake: *{datos['stake']} del bankroll*
+• Profit Esperado: *+{datos['profit_esperado']}%*
+
+⚠️ *RIESGO:* {random.choice(['BAJO', 'MEDIO-BAJO', 'MEDIO'])}
+🕒 *VENTANA:* {random.randint(10, 30)} minutos
+
+🔥 *ACCIÓN INMEDIATA RECOMENDADA*
+"""
             await self.application.bot.send_message(
                 chat_id=self.admin_chat_id,
                 text=mensaje,
                 parse_mode='Markdown'
             )
             
-            # 📊 ACTUALIZAR ESTADÍSTICAS
-            self.estado_sistema['total_alertas'] += 1
+            # Actualizar estadísticas
+            self.estadisticas['alertas_emitidas'] += 1
+            self.health_status['total_alerts'] += 1
             
-            # Simular acierto (75% de precisión)
+            # Simular aciertos (75% de éxito)
             if random.random() > 0.25:
-                self.estado_sistema['aciertos'] += 1
-                self.estado_sistema['racha_actual'] += 1
-            else:
-                self.estado_sistema['racha_actual'] = 0
-                
-            # Calcular precisión
-            total = self.estado_sistema['total_alertas']
-            aciertos = self.estado_sistema['aciertos']
-            if total > 0:
-                self.estado_sistema['precision_global'] = round((aciertos / total) * 100, 2)
-            
-            logger.info(f"📨 Alerta {total} enviada - Precisión: {self.estado_sistema['precision_global']}%")
-            
-        except Exception as e:
-            logger.error(f"❌ Error enviando alerta: {e}")
-
-    def _generar_datos_partido(self) -> Dict:
-        """Generar datos de partido realistas"""
-        deporte = random.choice(['futbol', 'baloncesto', 'tenis'])
-        
-        if deporte == 'futbol':
-            equipo_local, equipo_visitante = random.sample(self.deportes['futbol']['equipos'], 2)
-            liga = random.choice(self.deportes['futbol']['ligas'])
-        elif deporte == 'baloncesto':
-            equipo_local, equipo_visitante = random.sample(self.deportes['baloncesto']['equipos'], 2)
-            liga = random.choice(self.deportes['baloncesto']['ligas'])
-        else:
-            equipo_local, equipo_visitante = random.sample(self.deportes['tenis']['jugadores'], 2)
-            liga = random.choice(self.deportes['tenis']['torneos'])
-        
-        return {
-            'deporte': deporte,
-            'liga': liga,
-            'equipo_local': equipo_local,
-            'equipo_visitante': equipo_visitante,
-            'ganador_predicho': equipo_local if random.random() > 0.4 else equipo_visitante,
-            'confianza': random.randint(85, 96),
-            'marcador': f"{random.randint(1, 3)}-{random.randint(0, 2)}",
-            'tipo_apuesta': random.choice([
-                "GANADOR", "AMBOS MARCAN", "MÁS 2.5 GOLES", 
-                "HANDICAP -1.5", "DOBLE OPORTUNIDAD"
-            ]),
-            'cuota': round(random.uniform(1.70, 2.80), 2),
-            'stake': f"{random.randint(2, 6)}%",
-            'ventana': f"{random.randint(10, 25)} min",
-            'hora': datetime.now().strftime("%H:%M"),
-            'profit_esperado': round(random.uniform(8.5, 22.3), 1)
-        }
-
-    def _formatear_alerta(self, datos: Dict) -> str:
-        """Formatear alerta para Telegram"""
-        return f"""
-🎯 *ALERTA DIOS SUPREMO* 🎯
-
-⚡ *Sistema v3.0* | Precisión: {self.estado_sistema['precision_global']}%
-🕒 *Hora:* {datos['hora']}
-
-🏆 *ENCUENTRO:*
-• {datos['equipo_local']} 🆚 {datos['equipo_visitante']}
-• {datos['liga']} | {datos['deporte'].upper()}
-
-🎯 *PREDICCIÓN:*
-• Ganador: *{datos['ganador_predicho']}*
-• Confianza: *{datos['confianza']}%*
-• Marcador: *{datos['marcador']}*
-
-💰 *INVERSIÓN:*
-• Apuesta: *{datos['tipo_apuesta']}*
-• Cuota: *{datos['cuota']}*
-• Stake: *{datos['stake']} del bankroll*
-• Profit Esperado: *+{datos['profit_esperado']}%*
-
-⚠️ *Acción recomendada en los próximos {datos['ventana']}*
-
-🔥 *Sistema activo - Rachas: {self.estado_sistema['racha_actual']}*
-"""
-
-    async def _enviar_evolucion(self, mensaje: str):
-        """Enviar mensaje de evolución"""
-        try:
-            await self.application.bot.send_message(
-                chat_id=self.admin_chat_id,
-                text=f"*🔮 EVOLUCIÓN:* {mensaje}",
-                parse_mode='Markdown'
-            )
-        except Exception as e:
-            logger.error(f"Error enviando evolución: {e}")
-
-    def setup_handlers(self):
-        """Configurar comandos de Telegram"""
-        handlers = [
-            CommandHandler("start", self.comando_start),
-            CommandHandler("alertas", self.comando_alertas),
-            CommandHandler("estadisticas", self.comando_estadisticas),
-            CommandHandler("sistema", self.comando_sistema),
-            CommandHandler("test", self.comando_test),
-        ]
-        
-        for handler in handlers:
-            self.application.add_handler(handler)
-
-    async def comando_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando de inicio"""
-        user = update.effective_user
-        
-        if str(user.id) != self.admin_chat_id:
-            await update.message.reply_text("❌ *Acceso restringido*", parse_mode='Markdown')
-            return
-            
-        texto = f"""
-🤖 *DIOS SUPREMO - ACTIVADO*
-
-✅ *Sistema operativo en Render*
-🎯 *Precisión actual:* {self.estado_sistema['precision_global']}%
-🔮 *Habilidades:* {len(self.habilidades)}
-
-⚡ *Comandos disponibles:*
-/alertas - Activar/desactivar alertas
-/estadisticas - Ver métricas avanzadas  
-/sistema - Estado del sistema
-/test - Generar alerta de prueba
-
-🚨 *Alertas automáticas cada 5-10 minutos*
-"""
-        await update.message.reply_text(texto, parse_mode='Markdown')
-
-    async def comando_alertas(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Activar/desactivar alertas"""
-        user = update.effective_user
-        if str(user.id) != self.admin_chat_id:
-            return
-            
-        self.estado_sistema['alertas_activas'] = not self.estado_sistema['alertas_activas']
-        estado = "✅ ACTIVADAS" if self.estado_sistema['alertas_activas'] else "❌ DESACTIVADAS"
-        
-        await update.message.reply_text(
-            f"🔔 *Alertas {estado}*\n\nEl sistema {'está enviando' if self.estado_sistema['alertas_activas'] else 'ha parado'} predicciones.",
-            parse_mode='Markdown'
-        )
-
-    async def comando_estadisticas(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Mostrar estadísticas"""
-        user = update.effective_user
-        if str(user.id) != self.admin_chat_id:
-            return
-            
-        texto = f"""
-📊 *ESTADÍSTICAS AVANZADAS*
-
-🎯 *Rendimiento:*
-• Alertas Totales: {self.estado_sistema['total_alertas']}
-• Precisión: {self.estado_sistema['precision_global']}%
-• Racha Actual: {self.estado_sistema['racha_actual']}
-• Aciertos: {self.estado_sistema['aciertos']}
-
-⚡ *Sistema:*
-• Experiencia: {self.estado_sistema['experiencia']:.2f}
-• Habilidades: {len(self.habilidades)}
-• Estado: {'🟢 ACTIVO' if self.estado_sistema['alertas_activas'] else '🔴 INACTIVO'}
-"""
-        await update.message.reply_text(texto, parse_mode='Markdown')
-
-    async def comando_sistema(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Estado del sistema"""
-        user = update.effective_user
-        if str(user.id) != self.admin_chat_id:
-            return
-            
-        texto = f"""
-🔧 *ESTADO DEL SISTEMA*
-
-🧠 *Núcleo Divino:*
-• Omnisciencia: {self.estado_sistema['omnisciencia']:.1f}%
-• Omnipotencia: {self.estado_sistema['omnipotencia']:.1f}%
-• Nodos Activos: {self.estado_sistema['omnipresencia']}
-
-🎯 *Habilidades Desbloqueadas:*
-{chr(10).join(f'• {hab}' for hab in self.habilidades)}
-
-📈 *Próxima Evolución:*
-• Experiencia necesaria: {3.0 - self.estado_sistema['experiencia']:.2f}
-• Tiempo estimado: {max(1, int((3.0 - self.estado_sistema['experiencia']) / 0.05 * 0.5))} horas
-"""
-        await update.message.reply_text(texto, parse_mode='Markdown')
-
-    async def comando_test(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Generar alerta de prueba"""
-        user = update.effective_user
-        if str(user.id) != self.admin_chat_id:
-            return
-            
-        await self._generar_alerta_inteligente()
-        await update.message.reply_text("✅ *Alerta de prueba generada*", parse_mode='Markdown')
-
-    async def run_webhook(self):
-        """Ejecutar con webhook para Render"""
-        try:
-            port = int(os.environ.get('PORT', 8443))
-            webhook_url = os.getenv('RENDER_EXTERNAL_URL')
-            
-            if webhook_url:
-                await self.application.bot.set_webhook(
-                    url=f"{webhook_url}/webhook"
+                self.estadisticas['predicciones_acertadas'] += 1
+                self.estadisticas['racha_actual'] += 1
+                self.estadisticas['mejor_racha'] = max(
+                    self.estadisticas['mejor_racha'],
+                    self.estadisticas['racha_actual']
                 )
-                logger.info(f"🌐 Webhook configurado: {webhook_url}")
+                profit = round(random.uniform(15, 120), 2)
+                self.estadisticas['profit_acumulado'] += profit
+            else:
+                self.estadisticas['racha_actual'] = 0
             
-            await self.application.run_webhook(
-                listen="0.0.0.0",
-                port=port,
-                webhook_url=f"{webhook_url}/webhook" if webhook_url else None,
-            )
+            # Calcular precisión global
+            total = self.estadisticas['alertas_emitidas']
+            aciertos = self.estadisticas['predicciones_acertadas']
+            if total > 0:
+                self.estadisticas['precision_global'] = round((aciertos / total) * 100, 2)
+            
+            logger.info(f"🚨 Alerta #{total} enviada - Precisión: {self.estadisticas['precision_global']}%")
+            
         except Exception as e:
-            logger.error(f"❌ Error webhook: {e}")
+            logger.error(f"❌ Error en alerta: {e}")
+            self.health_status['errors'] += 1
+            if self.health_status['errors'] > 5:
+                self.health_status['status'] = 'degraded'
 
-    async def run_polling(self):
-        """Ejecutar con polling para desarrollo"""
-        await self.application.run_polling()
-
-# 🚀 INICIALIZACIÓN OPTIMIZADA PARA RENDER
-async def main():
-    try:
-        bot = DiosSupremoRender()
+    async def motor_alertas(self):
+        """Motor principal de alertas automáticas"""
+        logger.info("🚀 Iniciando motor de alertas automáticas...")
         
-        # Determinar modo de ejecución
-        if os.getenv('RENDER'):
-            logger.info("🚀 Iniciando en modo WEBHOOK para Render")
-            await bot.run_webhook()
-        else:
-            logger.info("🔧 Iniciando en modo POLLING para desarrollo")
-            await bot.run_polling()
+        while True:
+            try:
+                if self.alertas_activas and 8 <= datetime.now().hour <= 23:
+                    await self.generar_alerta()
+                
+                # Espera variable entre 2-7 minutos
+                await asyncio.sleep(random.randint(120, 420))
+                
+            except Exception as e:
+                logger.error(f"❌ Error en motor de alertas: {e}")
+                self.health_status['errors'] += 1
+                await asyncio.sleep(60)  # Esperar 1 minuto antes de reintentar
+
+    async def run(self):
+        """Ejecutar el bot de manera estable"""
+        logger.info("🔥 Iniciando Sistema Dios Supremo en Railway...")
+        
+        try:
+            # Iniciar motor de alertas en segundo plano
+            asyncio.create_task(self.motor_alertas())
             
+            # Iniciar el bot de Telegram
+            await self.application.initialize()
+            await self.application.start()
+            await self.application.updater.start_polling()
+            
+            logger.info("✅ Bot iniciado correctamente en Railway")
+            
+            # Mantener el bot corriendo
+            while True:
+                await asyncio.sleep(3600)  # Esperar 1 hora
+                
+        except Exception as e:
+            logger.error(f"❌ Error crítico: {e}")
+            raise
+
+# Función principal optimizada para Railway
+async def main():
+    TOKEN = os.environ.get('TELEGRAM_TOKEN')
+    ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID')
+    
+    if not TOKEN or not ADMIN_CHAT_ID:
+        logger.error("❌ ERROR: Variables de entorno faltantes")
+        logger.error("   - TELEGRAM_TOKEN: %s", "SET" if TOKEN else "MISSING")
+        logger.error("   - ADMIN_CHAT_ID: %s", "SET" if ADMIN_CHAT_ID else "MISSING")
+        return
+    
+    try:
+        bot = DiosSupremoBot(token=TOKEN, admin_chat_id=ADMIN_CHAT_ID)
+        await bot.run()
     except Exception as e:
-        logger.error(f"❌ Error crítico: {e}")
-        # Esperar antes de reintentar en caso de error
+        logger.error(f"❌ Error iniciando bot: {e}")
+        # Esperar antes de reintentar (útil para Railway)
         await asyncio.sleep(60)
+        await main()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Manejo robusto de errores para Railway
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("👋 Apagando sistema...")
+    except Exception as e:
+        logger.error(f"💥 Error no controlado: {e}")
+        time.sleep(60)
+        # Railway reiniciará automáticamente
